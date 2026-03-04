@@ -5,5 +5,14 @@ Disallow: /private/
 Disallow: /api/
 Disallow: /internal/
 
+# Additional crawl directives
+Crawl-delay: 1
 # Sitemap location
-Sitemap: https://dsc123.netlify.app/sitemap.xml
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+Sitemap: https://dsc123.vercel.app/sitemap.xml
+User-agent: Bingbot
+Allow: /
+User-agent: Slurp
+Allow: /
