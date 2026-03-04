@@ -5,18 +5,11 @@ import { Card, CardContent } from "../ui/card";
 import { Search } from "lucide-react";
 import { dscProducts } from "../data/products";
 
-interface AIRecommendation {
-  confidence: number;
-  reason: string;
-  suggestedUse: string[];
-}
-
 interface SearchResult {
   type: string;
   price: number;
   relevanceScore: number;
   features: string[];
-  aiRecommendation?: AIRecommendation;
 }
 
 const dscDatabase = [
@@ -106,8 +99,6 @@ export default function DSCFinder() {
   const [duration, setDuration] = useState(2);
   const [includeToken, setIncludeToken] = useState(true);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [aiInsights, setAiInsights] = useState<string>("");
 
   const calculateRelevanceScore = (item: typeof dscDatabase[0], searchTerm: string): number => {
   let score = 0;
@@ -156,45 +147,6 @@ const isFuzzyMatch = (keyword: string, term: string, maxDistance: number): boole
   return levenshteinDistance(keyword, term) <= maxDistance;
 };
 
-// ✅ AI-powered recommendation system
-const generateAIRecommendation = (item: typeof dscDatabase[0], searchTerm: string): AIRecommendation => {
-  const terms = searchTerm.toLowerCase().split(" ");
-  let confidence = 0;
-  const reasons: string[] = [];
-  const suggestedUse: string[] = [];
-
-  // Analyze search intent
-  if (terms.some(t => ["gst", "tax", "filing"].includes(t))) {
-    confidence += 20;
-    reasons.push("Perfect for tax compliance");
-    suggestedUse.push("GST Filing", "Income Tax Returns");
-  }
-
-  if (terms.some(t => ["tender", "bid", "procurement", "gem"].includes(t))) {
-    confidence += 25;
-    reasons.push("Ideal for government tenders");
-    suggestedUse.push("e-Tendering", "GeM Portal", "Government Procurement");
-  }
-
-  if (terms.some(t => ["startup", "company", "business"].includes(t))) {
-    confidence += 15;
-    reasons.push("Great for business registration");
-    suggestedUse.push("Company Registration", "Startup India", "MCA Filing");
-  }
-
-  if (terms.some(t => ["import", "export", "trade", "dgft"].includes(t))) {
-    confidence += 30;
-    reasons.push("Essential for international trade");
-    suggestedUse.push("Import/Export", "DGFT Services", "ICEGATE");
-  }
-
-  return {
-    confidence: Math.min(confidence, 95),
-    reason: reasons.join(" • ") || "Suitable for your requirements",
-    suggestedUse: suggestedUse.length > 0 ? suggestedUse : item.features.slice(0, 3)
-  };
-};
-
   const calculatePrice = (basePrice: number): number => {
     let finalPrice = basePrice;
     if (duration === 3) {
@@ -209,38 +161,20 @@ const generateAIRecommendation = (item: typeof dscDatabase[0], searchTerm: strin
   };
 
   const searchDSC = () => {
-    setIsLoading(true);
-    
-    // Simulate AI processing delay
-    setTimeout(() => {
     const searchResults = dscDatabase
       .map(item => {
         const score = search.trim() ? calculateRelevanceScore(item, search) : 1;
-          const aiRec = search.trim() ? generateAIRecommendation(item, search) : undefined;
-          
         return {
           type: item.type,
           price: calculatePrice(item.basePrice),
           relevanceScore: score,
-            features: item.features,
-            aiRecommendation: aiRec
+          features: item.features
         };
       })
       .filter(item => search.trim() ? item.relevanceScore >= 1 : true)
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
     setResults(searchResults);
-      
-      // Generate AI insights
-      if (search.trim() && searchResults.length > 0) {
-        const topResult = searchResults[0];
-        setAiInsights(`🤖 AI Analysis: Based on "${search}", I recommend ${topResult.type} with ${topResult.aiRecommendation?.confidence}% confidence. ${topResult.aiRecommendation?.reason}`);
-      } else {
-        setAiInsights("");
-      }
-      
-      setIsLoading(false);
-    }, 800);
   };
 
   useEffect(() => {
@@ -250,65 +184,42 @@ const generateAIRecommendation = (item: typeof dscDatabase[0], searchTerm: strin
 }, [search, duration, includeToken, dscProducts]);
 
   return (
-   <div className="p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-2xl shadow-xl w-full max-w-4xl mx-auto border border-blue-100">
+   <div className="p-8 bg-gray-50 rounded-2xl shadow-md w-full max-w-4xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          🤖 AI-Powered DSC Finder
-        </h2>
-        <p className="text-gray-600">Intelligent recommendations for your Digital Signature Certificate needs</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">DSC Finder</h2>
+        <p className="text-gray-600">Find the perfect Digital Signature Certificate for your needs</p>
       </div>
 
-      {/* AI Insights Banner */}
-      {aiInsights && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg border-l-4 border-blue-500">
-          <p className="text-sm text-blue-800 font-medium">{aiInsights}</p>
-        </div>
-      )}
-
       <div className="space-y-4">
-        <div className="flex gap-2 relative">
+        <div className="flex gap-2">
           <div className="flex-1">
             <Input
-              placeholder="🔍 Describe your needs (e.g., GST filing, e-tendering, startup registration)..."
+              placeholder="Search by purpose (e.g., GST, Income Tax, eTender)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-4 pr-12 py-3 border-2 border-blue-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              className="w-full"
             />
-            {isLoading && (
-              <div className="absolute right-16 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              </div>
-            )}
           </div>
           <Button
             onClick={searchDSC}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transform hover:scale-105 transition-all disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
           >
             <Search className="w-5 h-5" />
-            <span>{isLoading ? 'Analyzing...' : 'Find DSC'}</span>
+            <span>Search</span>
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg">
           <div className="flex gap-2">
             <Button
               onClick={() => setDuration(2)}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                duration === 2 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              variant={duration === 2 ? "default" : "outline"}
             >
               2 Years
             </Button>
             <Button
               onClick={() => setDuration(3)}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                duration === 3 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              variant={duration === 3 ? "default" : "outline"}
             >
               3 Years
             </Button>
@@ -316,11 +227,7 @@ const generateAIRecommendation = (item: typeof dscDatabase[0], searchTerm: strin
 
           <Button
             onClick={() => setIncludeToken(!includeToken)}
-            className={`px-4 py-2 rounded-lg transition-all ${
-              includeToken 
-                ? 'bg-green-600 text-white shadow-md' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            variant={includeToken ? "default" : "outline"}
           >
             {includeToken ? "Include Token (+₹310)" : "Exclude Token"}
           </Button>
@@ -329,77 +236,47 @@ const generateAIRecommendation = (item: typeof dscDatabase[0], searchTerm: strin
         <div className="grid gap-4">
           {results.length > 0 ? (
             results.map((result, index) => (
-              <Card key={index} className="hover:shadow-xl transition-all transform hover:scale-[1.02] border-l-4 border-l-blue-500 bg-gradient-to-r from-white to-blue-50">
-                <CardContent className="p-6">
+              <Card key={index} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-bold text-lg text-gray-800">{result.type}</h3>
-                        {result.aiRecommendation && result.aiRecommendation.confidence > 70 && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
-                            🎯 {result.aiRecommendation.confidence}% Match
-                          </span>
-                        )}
-                      </div>
-                      
-                      {result.aiRecommendation ? (
-                        <div className="space-y-1">
-                          <p className="text-blue-700 text-sm font-medium">
-                            💡 {result.aiRecommendation.reason}
-                          </p>
-                          <p className="text-gray-600 text-sm">
-                            Best for: {result.aiRecommendation.suggestedUse.slice(0, 3).join(" • ")}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-gray-600 text-sm mt-1">
-                          {result.features.slice(0, 3).join(" • ")}
-                        </p>
-                      )}
+                      <h3 className="font-bold text-lg text-gray-800">{result.type}</h3>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {result.features.slice(0, 3).join(" • ")}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">₹{result.price}/-</p>
+                      <p className="text-2xl font-bold text-blue-600">₹{result.price}/-</p>
                       <p className="text-sm text-gray-500">{duration} Years {includeToken ? '(with Token)' : ''}</p>
                     </div>
                   </div>
                   
-                  <div className="mt-6 flex gap-3">
+                  <div className="mt-4 flex gap-2">
                    <Button
   onClick={() => {
     const message = `Hello, I'm interested in ${result.type} for ₹${result.price}/- (${duration} years)${includeToken ? ' with USB token' : ''}. Please provide more details.`;
     window.open(`https://wa.me/7388288022?text=${encodeURIComponent(message)}`, '_blank');
   }}
-  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold text-sm py-3 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105"
+  className="bg-green-500 hover:bg-green-600 text-white font-semibold text-sm py-2 px-4 rounded-md shadow-sm transition-transform transform hover:scale-105"
 >
-  💬 Get Quote on WhatsApp
+  Get Quote
 </Button>
-                    
-                    <Button
-                      onClick={() => {
-                        const message = `I need more information about ${result.type} and its applications.`;
-                        window.open(`https://wa.me/7388288022?text=${encodeURIComponent(message)}`, '_blank');
-                      }}
-                      className="bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold text-sm py-3 px-6 rounded-lg transition-all"
-                    >
-                      📞 Call Expert
-                    </Button>
 
                   </div>
                 </CardContent>
               </Card>
             ))
           ) : (
-            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg">
-              <div className="text-6xl mb-4">🤖</div>
-              <p className="text-gray-600 mb-6 text-lg">No DSCs found matching your criteria</p>
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">No DSCs found matching your criteria</p>
               <Button
                 onClick={() => {
                   const message = `Hello, I need help finding a DSC for: ${search}`;
                   window.open(`https://wa.me/7388288022?text=${encodeURIComponent(message)}`, '_blank');
                 }}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg"
+                variant="outline"
               >
-                🆘 Get Expert Help
+                Contact Support for Help
               </Button>
             </div>
           )}
