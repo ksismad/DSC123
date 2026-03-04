@@ -10,7 +10,7 @@ export default function Header() {
           <FileDigit size={40} className="text-blue-200" />
           <div>
             <h1 className="text-2xl font-bold">OFA BUSINESS SOLUTIONS</h1>
-            <p className="text-blue-200">India's Trusted DSC Provider</p>
+            <p className="text-blue-200">🚀 Powered by AI • India's #1 DSC Provider</p>
           </div>
         </div>
         <nav className="mt-4 md:mt-0">
@@ -32,6 +32,14 @@ export default function Header() {
             </li>
             <li>
               <p className="text-sm text-blue-200">Call/WhatsApp: +91-7388288022</p>
+            </li>
+            <li>
+              <a 
+                href="https://dsc123.vercel.app" 
+                className="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-semibold hover:bg-blue-50 transition-colors"
+              >
+                ⚡ Vercel Powered
+              </a>
             </li>
           </ul>
         </nav>
